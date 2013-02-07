@@ -1,0 +1,12 @@
+<section class="alert clearfix attachments--item" data-file-id="{{attachment.id}}" >
+    <strong>{{ attachment.type }}</strong><br>
+    <small>{% if attachment.createdBy %}{{ attachment.createdBy }} - {% endif %}{{ attachment.created |time_ago_in_words }} </small><br>
+    {% if attachment.info %}
+        <p>{{ attachment.info }}</p>
+    {% endif %}
+    {% for file in attachment.files %}
+        <a rel="attachment" class="btn btn-link btn-mini fancybox" target="_blank" href="{{ file.path }}">
+            <i class="icon-download"></i> {{ file.name|slice(0,20) }}
+        </a>
+    {% endfor %}
+</section>

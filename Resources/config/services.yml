@@ -1,0 +1,13 @@
+services: 
+    g_service.attachment:
+        class:  Pois\AttachmentBundle\Service\AttachmentService
+        arguments:
+            container:     @service_container
+            entityManager: @doctrine.orm.entity_manager
+            paginator:     @knp_paginator
+            entityClass:   \Pois\AttachmentBundle\Entity\Attachment
+
+    g_service.fileupload:
+        class: Pois\AttachmentBundle\Service\FileUploadService
+        arguments:
+            container: @service_container
