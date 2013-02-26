@@ -69,14 +69,16 @@ class AttachmentController extends Controller
      * @Route("/new", name="attachments_new")
      * @Template()
      */
-    public function newAction()
+    public function newAction(Request $request)
     {
         $entity = $this->get('g_service.attachment')->createNew();
         $form   = $this->createForm(new AttachmentType(), $entity);
 
         return array(
-            'entity' => $entity,
-            'form'   => $form->createView(),
+            'entity'  => $entity,
+            'form'    => $form->createView(),
+            'id'      => $request->get('id'),
+            'id_name' => $request->get('id_name'),
         );
     }
 

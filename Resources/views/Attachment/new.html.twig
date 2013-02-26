@@ -1,16 +1,39 @@
-<h1>Attachment creation</h1>
+{% extends 'GrafixWebBundle::layout.html.twig' %}
+{% form_theme form 'MopaBootstrapBundle:Form:fields.html.twig' %}
+{% block content %}
+{% spaceless %}
 
-<form action="" method="post" {{ form_enctype(form) }}>
+<form
+	action               = "{{ path('attachment_create') }}" 
+	class                = "form-horizontal"
+	data-buttons         = "cancel,close"
+	data-require         = "setupUploads"
+	data-close-btn-title = "{{ 'Dodaj'|trans({}, 'GrafixCrmBundle') }}"            
+	data-reload-sel      = ".sidebar-widgets" {# reload only part of current page using selector#}    	
+	data-title           = {{ 'Nowy plik'|trans({}, 'PoisAttachmentBundle') }}
+	data-upload-url      = "{{ path('file_upload') }}"
+	id                   = "fileupload"
+	method               = "post">
+    <input type='hidden' name='{{id_name}}' value='{{id}}' />
     {{ form_widget(form) }}
-    <p>
-        <button type="submit">Create</button>
-    </p>
-</form>
+    <hr>
+    <!-- The fileupload-buttonbar contains buttons to add/delete files and start/cancel the upload -->
+    <div class="fileupload-buttonbar clearfix">
+            <!-- The fileinput-button span is used to style the file input field as button -->
+            <span class="btn btn-success fileinput-button">
+                <i class="icon-plus icon-white"></i>
+                <span>Wybierz plik</span>
+                <input type="file" name="files[]" multiple>
+            </span>
+            <span id="dropzone" ><span>Przeciągnij i upuść pliki tutaj</span></span>
+    </div>
+    <!-- The loading indicator is shown during file processing -->
+    <div class="fileupload-loading"></div>
+    <br>
+    <!-- The table listing the files available for upload/download -->
+    <div role="presentation" class="files"></div>
 
-<ul class="record_actions">
-    <li>
-        <a href="{{ path('attachments') }}">
-            {{ 'buttons.back_to_list'|trans({}, 'GrafixWebBundle') }}
-        </a>
-    </li>
-</ul>
+            </form>
+
+{% endspaceless %}
+{% endblock %}
