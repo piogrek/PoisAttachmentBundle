@@ -326,8 +326,8 @@ class UploadHandler
         $file_path = $this->get_upload_path($file_name);
         if (!empty($version)) {
             $version_dir = $this->get_upload_path(null, $version);
-            if (!is_dir($version_dir)) {
-                mkdir($version_dir, $this->options['mkdir_mode'], true);
+            if (!is_dir($version_dir.$this->options['subdir'])) {
+                mkdir($version_dir.$this->options['subdir'], $this->options['mkdir_mode'], true);
             }
             $new_file_path = $version_dir.'/'.$file_name;
         } else {
@@ -566,12 +566,12 @@ class UploadHandler
     protected function handle_file_upload($uploaded_file, $name, $size, $type, $error,
             $index = null, $content_range = null) {
         $file = new \stdClass();
-        $file->name = $this->get_file_name($name, $type, $index, $content_range);
+        $file->name = $this->options['subdir'].$this->get_file_name($name, $type, $index, $content_range);
         $file->size = $this->fix_integer_overflow(intval($size));
         $file->type = $type;
         if ($this->validate($uploaded_file, $file, $error, $index)) {
             $this->handle_form_data($file, $index);
-            $upload_dir = $this->get_upload_path();
+            $upload_dir = $this->get_upload_path().$this->options['subdir'];
             if (!is_dir($upload_dir)) {
                 mkdir($upload_dir, $this->options['mkdir_mode'], true);
             }
