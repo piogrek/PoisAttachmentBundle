@@ -1,4 +1,10 @@
 <section class="alert clearfix attachments--item" data-file-id="{{attachment.id}}" >
+    <a 
+        class       = "btn btn-mini btn-danger btn--attachment-remove"
+        data-toggle = "modal" 
+        data-href   = "{{ path('attachments_delete',{id:attachment.id}) }}"                            
+		>
+        <i class    = "icon icon-trash icon-white"></i></a>
     <strong>{{ attachment.type }}</strong><br>
     <small>{% if attachment.createdBy %}{{ attachment.createdBy }} - {% endif %}{{ attachment.created |time_ago_in_words }} </small><br>
     {% if attachment.info %}

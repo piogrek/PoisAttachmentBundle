@@ -1,0 +1,13 @@
+{% spaceless %}
+<form 
+	action               = "{{ path('attachments_delete', { 'id': entity.id }) }}" 
+	data-buttons         = "cancel,close"
+	data-close-btn-title = "{{ 'Usuń'|trans({}, 'PoisNotificationBundle') }}"
+	data-reload-sel      = ".sidebar-widgets"  
+	data-titl]e          = "{{ 'Usuwanie załącznika'|trans({}, 'PoisNotificationBundle') }}"
+	method               = "post">
+	<p>{{ 'Zamierzasz usunąć załącznik '|trans({}, 'GrafixWebBundle') }}</p>
+	<strong>{{ 'header.are_you_sure'|trans({}, 'GrafixCrmBundle') }}</strong>
+    {{ form_widget(delete_form) }}
+</form>
+{% endspaceless %}

@@ -56,7 +56,7 @@ class Attachment implements EntityInterface
     /**
      * Users who added message
      *
-     * @ORM\ManyToOne(targetEntity="Grafix\UserBundle\Entity\User", cascade={"persist", "remove"})
+     * @ORM\ManyToOne(targetEntity="Grafix\UserBundle\Entity\User", cascade={"persist"})
      */
     private $createdBy;
 

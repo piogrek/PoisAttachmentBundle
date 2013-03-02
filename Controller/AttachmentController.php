@@ -205,21 +205,32 @@ class AttachmentController extends Controller
      * Deletes a Attachment entity.
      *
      * @Route("/{id}/delete", name="attachments_delete")
-     * @Method("POST")
+     * @Template()
      */
     public function deleteAction(Request $request, $id)
     {
         $form = $this->createDeleteForm($id);
-        $form->bind($request);
 
-        if ($form->isValid()) {
-            $entity = $this->get('g_service.attachment')->get($id);
+        if ($request->isMethod('POST')) {
 
-            $em->remove($entity);
-            $em->flush();
+            $this->get('g_service.attachment')->delete($id);
+
+            //return json
+            if ($request->isXmlHttpRequest()) {
+                $result = array('success' => true);
+                $response = new Response(json_encode($result));
+                $response->headers->set('Content-Type', 'application/json');
+                return $response;
+            } else {
+                throw $this->createNotFoundException('No direct view for this page');
+            }
+        } else {
+            return array(
+                'delete_form' => $form->createView(),
+                'entity'      => $this->get('g_service.attachment')->get($id)
+            );
         }
 
-        return $this->redirect($this->generateUrl('attachments'));
     }
 
     private function createDeleteForm($id)
