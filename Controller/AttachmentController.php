@@ -125,6 +125,8 @@ class AttachmentController extends Controller
                 $this->get('g_service.magazyn.artykul')->addAttachment($id, $userId, $attachment);
             } elseif ( $id = $request->get('zlecenie_id') ) {
                 $this->get('g_service.magazyn.zlecenie')->addAttachment($id, $userId, $attachment);
+            } elseif ( $id = $request->get('calculation_id') ) {
+                $this->get('g_service.calculation')->addAttachment($id, $userId, $attachment);
             } else {
                 throw $this->createNotFoundException('Nie znaleziono obiektu dla zalacznika');
             }
