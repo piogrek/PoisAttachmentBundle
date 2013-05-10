@@ -15,4 +15,9 @@
             <i class="icon-download"></i> {{ file.name|slice(0,20) }}
         </a>
     {% endfor %}
+    {% for file in attachment.filesS3 %}
+        <a rel="attachment" class="btn btn-link btn-mini fancybox" target="_blank" href="{{ path('attachments_download',{url:file.url, key:file.key}) }}">
+            <i class="icon-download"></i> {{ file.name|slice(0,20) }}
+        </a>
+    {% endfor %}
 </section>

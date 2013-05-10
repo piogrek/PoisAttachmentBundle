@@ -54,6 +54,13 @@ class Attachment implements EntityInterface
     private $files;
 
     /**
+     * @var array $path
+     *
+     * @ORM\Column(name="files", type="json_array", nullable=true)
+     */
+    private $filesS3;
+
+    /**
      * Users who added message
      *
      * @ORM\ManyToOne(targetEntity="Grafix\UserBundle\Entity\User", cascade={"persist"})
@@ -243,9 +250,8 @@ class Attachment implements EntityInterface
      */
     public function __construct()
     {
+
     }
-
-
 
     /**
      * Set info
@@ -291,6 +297,29 @@ class Attachment implements EntityInterface
     public function getFiles()
     {
         return $this->files;
+    }
+
+    /**
+     * Set filesS3
+     *
+     * @param array $files
+     * @return Attachment
+     */
+    public function setFilesS3($files)
+    {
+        $this->filesS3 = $files;
+
+        return $this;
+    }
+
+    /**
+     * Get files
+     *
+     * @return array
+     */
+    public function getFilesS3()
+    {
+        return $this->filesS3;
     }
 
     /**

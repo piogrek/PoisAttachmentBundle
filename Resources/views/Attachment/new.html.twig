@@ -2,36 +2,51 @@
 {% form_theme form 'MopaBootstrapBundle:Form:fields.html.twig' %}
 {% block content %}
 {% spaceless %}
-
 <form
-	action               = "{{ path('attachment_create') }}" 
-	class                = "form-horizontal"
-	data-buttons         = "cancel,close"
-	data-require         = "setupUploads"
-	data-close-btn-title = "{{ 'Dodaj'|trans({}, 'GrafixCrmBundle') }}"            
-	data-reload-sel      = ".sidebar-widgets" {# reload only part of current page using selector#}    	
-	data-title           = {{ 'Nowy plik'|trans({}, 'PoisAttachmentBundle') }}
-	data-upload-url      = "{{ path('file_upload') }}"
-	id                   = "fileupload"
-	method               = "post">
-    <input type='hidden' name='{{id_name}}' value='{{id}}' />
+    action               = "{{ path('attachment_create') }}" 
+    ajax-action          = "http://iml.grafix.pl.s3.amazonaws.com" 
+    method               = "POST"
+    enctype              = "multipart/form-data"
+    data-buttons         = "cancel,close"
+    class                = "form-horizontal"
+    data-require         = "setupUploads"
+    data-id              = "{{id}}"
+    data-idname          = "{{id_name}}"
+    data-reload-sel      = ".sidebar-widgets" {# reload only part of current page using selector#}
+    data-close-btn-title = "{{ 'Dodaj'|trans({}, 'GrafixCrmBundle') }}"            
+    data-title           = "{{ 'Nowy plik'|trans({}, 'PoisAttachmentBundle') }}"
+    data-setup-url       = "{{ path('file_s3_setup') }}"
+    id                   = "fileupload" >
+
+    <input type = 'hidden' name='key'  />
+    <input type = 'hidden' name='AWSAccessKeyId' value='AKIAJ7ZSEU3PRNSAPCEQ' />
+    <input type = 'hidden' name='acl' value='private' />
+    <input type = 'hidden' name='policy'  />
+    <input type = 'hidden' name='signature'  />    
+    <input type = 'hidden' name='id' value="{{id}}"  />    
+    <input type = 'hidden' name='id_name' value="{{id_name}}"  />    
+    <input type = 'hidden' name='uploadedfiles[]'  />    
+    <input type = 'hidden' name='success_action_status' value="201" />    
+
     {{ form_widget(form) }}
-    <hr>
     <!-- The fileupload-buttonbar contains buttons to add/delete files and start/cancel the upload -->
     <div class="fileupload-buttonbar clearfix">
-            <!-- The fileinput-button span is used to style the file input field as button -->
-            <span class="btn btn-success fileinput-button">
-                <i class="icon-plus icon-white"></i>
-                <span>Wybierz plik</span>
-                <input type="file" name="files[]" multiple>
-            </span>
-            <span id="dropzone" ><span>Przeciągnij i upuść pliki tutaj</span></span>
+        <!-- The fileinput-button span is used to style the file input field as button -->
+        <span class="btn btn-success fileinput-button">
+            <i class="icon-plus icon-white"></i>
+            <span>Wybierz plik</span>
+            <input type="file" name="file" >
+        </span>
+        <span id="dropzone" ><span>Przeciągnij i upuść pliki tutaj</span></span>
     </div>
-    <!-- The loading indicator is shown during file processing -->
-    <div class="fileupload-loading"></div>
-    <br>
+
     <!-- The table listing the files available for upload/download -->
     <div role="presentation" class="files"></div>
+
+    <!-- The loading indicator is shown during file processing -->
+    <div class="progress progress-striped active">
+        <div class="bar"></div>
+    </div>
 
 </form>
 

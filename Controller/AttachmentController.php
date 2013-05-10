@@ -10,7 +10,9 @@ use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
 use Pois\AttachmentBundle\Entity\Attachment;
 use Pois\AttachmentBundle\Form\AttachmentType;
-
+use Aws\S3\Enum\CannedACL;
+use Aws\Common\Aws;
+use Aws\Common\Enum\Region;
 /**
  * Attachment controller.
  *
@@ -53,14 +55,30 @@ class AttachmentController extends Controller
     /**
      * Finds and downloads an Attachment entity.
      *
-     * @Route("/{id}/download", name="attachments_download")
+     * @Route("/download", name="attachments_download")
      */
-    public function downloadAction($id)
+    public function downloadAction(Request $request)
     {
-        $entity = $this->get('g_service.attachment')->get($id);
-        header('Content-Disposition: attachment; filename="'.$entity->getName().'"');
-        header('Pragma: no-cache');
-        readfile($entity->getAbsolutePath());
+        $key = $request->get('key');
+        $url = $request->get('url');
+
+        $aws = Aws::factory(array(
+            'key'    => $this->container->getParameter('s3_access_key'),
+            'secret' => $this->container->getParameter('s3_secret_key'),
+            'region' => Region::IRELAND
+        ));
+
+        $s3 = $aws->get('s3');
+
+        $bucket = $this->container->getParameter('s3_bucket');
+        $filename = implode('/',$key);
+        $disp = "?response-content-disposition=attachment; filename=\"$filename\"";
+
+        $request = $s3->get("$bucket/$filename".$disp);
+
+        $_url = $s3->createPresignedUrl($request, '+15 minutes');
+
+        return $this->redirect($_url);
     }
 
     /**
@@ -91,46 +109,57 @@ class AttachmentController extends Controller
      */
     public function createAction(Request $request)
     {
-        //get additional parameters from form
+        //get additional parameters from the form
         $_uploadedFiles = $request->get('uploadedfiles')?$request->get('uploadedfiles'):array();
         $uploadedFiles = array();
-
-        foreach ($_uploadedFiles as $_file) {
-            $_fname = explode('/', $_file);
-            $uploadedFiles[] = array(
-                'name' => array_pop($_fname),
-                'path' => '/uploads/'.$_file
-                );
-        }
-
+        $id = $request->get('id');
+        $id_name = $request->get('id_name');
+        //new attachment 
         $attachment  = $this->get('g_service.attachment')->createNew();
         $form = $this->createForm(new AttachmentType(), $attachment);
         $form->bind($request);
         $result = array('success' => false);
 
+
         if ($form->isValid()) {
+
+            foreach ($_uploadedFiles as $_file) {
+                $fileEncoded = json_decode(urldecode($_file), true);
+
+                if (!$fileEncoded) {
+                    continue;
+                }     
+                $uploadedKey = $fileEncoded['key'];
+                $uploadedFiles[] = array(    
+                    'url'     => $fileEncoded['url'],
+                    'key'     => $uploadedKey,
+                    'name'    => array_pop($uploadedKey),
+                    'id'      => array_pop($uploadedKey),
+                    'service' => array_pop($uploadedKey),
+                );
+            }
+
             $user = $this->get('security.context')->getToken()->getUser();
             $userId = $user->getId();
 
-            $attachment->setFiles($uploadedFiles);
+            $attachment->setFilesS3($uploadedFiles);
             //save attachment
             $this->get('g_service.attachment')->save($attachment);
 
             //recognise request and redirect to correct service
-            if ( $id = $request->get('client_id') ) {
+            if ( $id_name == 'client_id' ) {
                  $this->get('g_service.client')->addAttachment($id, $userId, $attachment);
-            } elseif ( $id = $request->get('dokument_id') ) {
+            } elseif ( $id_name == 'dokument_id' ) {
                 $this->get('g_service.magazyn')->addAttachment($id, $userId, $attachment);
-            } elseif ( $id = $request->get('message_id') ) {
+            } elseif ( $id_name == 'message_id' ) {
                 $this->get('g_service.magazyn.artykul')->addAttachment($id, $userId, $attachment);
-            } elseif ( $id = $request->get('imlorder_id') ) {
+            } elseif ( $id_name == 'imlorder_id' ) {
                 $this->get('g_service.imlorder')->addAttachment($id, $userId, $attachment);
-            } elseif ( $id = $request->get('calculation_id') ) {
+            } elseif ( $id_name == 'calculation_id' ) {
                 $this->get('g_service.calculation')->addAttachment($id, $userId, $attachment);
             } else {
                 throw $this->createNotFoundException('Nie znaleziono obiektu dla zalacznika');
             }
-
 
             if ($request->isXmlHttpRequest()) {
                 $result['success'] = true;
@@ -281,4 +310,65 @@ class AttachmentController extends Controller
             'attachments' => $attachments
             );
     }
+
+
+    /**
+     *
+     * @Route("/setup", name="file_s3_setup")
+     * @Template()
+     */
+    public function setupS3Action(Request $request)
+    {
+        $doc = $request->get('doc');
+        $key = "uploads/{$doc['idname']}/{$doc['id']}/{$doc['title']}";
+
+        $now = strtotime(date("Y-m-d\TG:i:s")); 
+        $expire = date('Y-m-d\TG:i:s\Z', strtotime('+ 10 minutes', $now)); // credentials valid 10 minutes from now 
+
+        $aws_access_key_id = $this->container->getParameter('s3_access_key');
+        $aws_secret_key    = $this->container->getParameter('s3_secret_key');
+        $bucket            = $this->container->getParameter('s3_bucket');
+        $acl = 'private';  
+        $url = 'http://'.$bucket.'.s3.amazonaws.com'; 
+
+        $policy_document='
+        {"expiration": "'.$expire.'",
+          "conditions": [
+            {"bucket": "'.$bucket.'"},
+            ["starts-with", "$key", "uploads/"],
+            {"acl": "'.$acl.'"},
+            {"success_action_status": "201"},
+            ["starts-with", "$uploadedfiles[]",""],
+            ["starts-with", "$id",""],
+            ["starts-with", "$id_name",""],
+            ["starts-with", "$grafix_servicebundle_attachmenttype[_token]",""],
+            ["starts-with", "$grafix_servicebundle_attachmenttype[info]",""],
+            ["starts-with", "$grafix_servicebundle_attachmenttype[type]",""]
+          ]
+        }';
+        // create policy
+        $policy = base64_encode($policy_document); 
+
+        // create signature
+        // hex2b64 and hmacsha1 are functions that we will create
+        $signature = base64_encode(
+            hash_hmac(
+                'sha1',
+                $policy,
+                $aws_secret_key,
+                true
+            )
+        );
+
+        $return = array(
+            'policy'    => $policy, 
+            'signature' => $signature, 
+            'key'       => $key, 
+            );
+
+        $response = new Response(json_encode($return));
+        $response->headers->set('Content-Type', 'application/json');
+        return $response;
+    } 
+    
 }
