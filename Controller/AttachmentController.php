@@ -151,14 +151,16 @@ class AttachmentController extends Controller
                  $this->get('g_service.client')->addAttachment($id, $userId, $attachment);
             } elseif ( $id_name == 'dokument_id' ) {
                 $this->get('g_service.magazyn')->addAttachment($id, $userId, $attachment);
-            } elseif ( $id_name == 'message_id' ) {
+            } elseif ( $id_name == 'artykul_id' ) {
                 $this->get('g_service.magazyn.artykul')->addAttachment($id, $userId, $attachment);
             } elseif ( $id_name == 'imlorder_id' ) {
                 $this->get('g_service.imlorder')->addAttachment($id, $userId, $attachment);
             } elseif ( $id_name == 'calculation_id' ) {
                 $this->get('g_service.calculation')->addAttachment($id, $userId, $attachment);
+            } elseif ( $id_name == 'user_id' ) {
+                $this->get('g_service.user')->addAttachment($id, $userId, $attachment);
             } else {
-                throw $this->createNotFoundException('Nie znaleziono obiektu dla zalacznika');
+                throw $this->createNotFoundException("Nie znaleziono obiektu dla zalacznika ({$id_name})");
             }
 
             if ($request->isXmlHttpRequest()) {
