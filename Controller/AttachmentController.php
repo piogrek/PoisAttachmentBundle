@@ -10,7 +10,6 @@ use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
 use Pois\AttachmentBundle\Entity\Attachment;
 use Pois\AttachmentBundle\Form\AttachmentType;
-use Aws\S3\Enum\CannedACL;
 use Aws\Common\Aws;
 use Aws\Common\Enum\Region;
 /**
@@ -60,8 +59,8 @@ class AttachmentController extends Controller
     public function downloadAction(Request $request)
     {
         $key = $request->get('key');
-        $url = $request->get('url');
-
+        $url = urlencode($request->get('url'));
+        // var_dump(array($key,$url));die();
         $aws = Aws::factory(array(
             'key'    => $this->container->getParameter('s3_access_key'),
             'secret' => $this->container->getParameter('s3_secret_key'),
@@ -72,12 +71,12 @@ class AttachmentController extends Controller
 
         $bucket = $this->container->getParameter('s3_bucket');
         $filename = implode('/',$key);
-        $disp = "?response-content-disposition=attachment; filename=\"$filename\"";
+        $disp = utf8_encode("?response-content-disposition=attachment; filename=\"$filename\"");
 
         $request = $s3->get("$bucket/$filename".$disp);
 
         $_url = $s3->createPresignedUrl($request, '+15 minutes');
-
+        // var_dump($request);die();
         return $this->redirect($_url);
     }
 
@@ -114,24 +113,22 @@ class AttachmentController extends Controller
         $uploadedFiles = array();
         $id = $request->get('id');
         $id_name = $request->get('id_name');
-        //new attachment 
+        //new attachment
         $attachment  = $this->get('g_service.attachment')->createNew();
         $form = $this->createForm(new AttachmentType(), $attachment);
         $form->bind($request);
         $result = array('success' => false);
 
-
         if ($form->isValid()) {
 
             foreach ($_uploadedFiles as $_file) {
-                $fileEncoded = json_decode(urldecode($_file), true);
-
+                $fileEncoded = json_decode(base64_decode($_file), true);
                 if (!$fileEncoded) {
                     continue;
-                }     
+                }
                 $uploadedKey = $fileEncoded['key'];
-                $uploadedFiles[] = array(    
-                    'url'     => $fileEncoded['url'],
+                $uploadedFiles[] = array(
+                    'url'     => urldecode($fileEncoded['url']),
                     'key'     => $uploadedKey,
                     'name'    => array_pop($uploadedKey),
                     'id'      => array_pop($uploadedKey),
@@ -147,17 +144,17 @@ class AttachmentController extends Controller
             $this->get('g_service.attachment')->save($attachment);
 
             //recognise request and redirect to correct service
-            if ( $id_name == 'client_id' ) {
+            if ($id_name == 'client_id') {
                  $this->get('g_service.client')->addAttachment($id, $userId, $attachment);
-            } elseif ( $id_name == 'dokument_id' ) {
+            } elseif ($id_name == 'dokument_id') {
                 $this->get('g_service.magazyn')->addAttachment($id, $userId, $attachment);
-            } elseif ( $id_name == 'artykul_id' ) {
+            } elseif ($id_name == 'artykul_id') {
                 $this->get('g_service.magazyn.artykul')->addAttachment($id, $userId, $attachment);
-            } elseif ( $id_name == 'imlorder_id' ) {
+            } elseif ($id_name == 'imlorder_id') {
                 $this->get('g_service.imlorder')->addAttachment($id, $userId, $attachment);
-            } elseif ( $id_name == 'calculation_id' ) {
+            } elseif ($id_name == 'calculation_id') {
                 $this->get('g_service.calculation')->addAttachment($id, $userId, $attachment);
-            } elseif ( $id_name == 'user_id' ) {
+            } elseif ($id_name == 'user_id') {
                 $this->get('g_service.user')->addAttachment($id, $userId, $attachment);
             } else {
                 throw $this->createNotFoundException("Nie znaleziono obiektu dla zalacznika ({$id_name})");
@@ -167,6 +164,7 @@ class AttachmentController extends Controller
                 $result['success'] = true;
                 $response = new Response(json_encode($result));
                 $response->headers->set('Content-Type', 'application/json');
+
                 return $response;
             } else {
                 return $this->redirect(urldecode($redirect_path));
@@ -176,6 +174,7 @@ class AttachmentController extends Controller
         if ($request->isXmlHttpRequest()) {
             $response = new Response(json_encode($result));
             $response->headers->set('Content-Type', 'application/json');
+
             return $response;
         } else {
             return array(
@@ -253,6 +252,7 @@ class AttachmentController extends Controller
                 $result = array('success' => true);
                 $response = new Response(json_encode($result));
                 $response->headers->set('Content-Type', 'application/json');
+
                 return $response;
             } else {
                 throw $this->createNotFoundException('No direct view for this page');
@@ -284,6 +284,7 @@ class AttachmentController extends Controller
 
         $response = new Response($this->get('g_service.fileupload')->handleRequest($key));
         $response->headers->set('Content-Type', 'application/json');
+
         return $response;
     }
 
@@ -308,11 +309,11 @@ class AttachmentController extends Controller
         }
 
         $attachments = $entity->getAttachments();
+
         return array(
             'attachments' => $attachments
             );
     }
-
 
     /**
      *
@@ -324,14 +325,14 @@ class AttachmentController extends Controller
         $doc = $request->get('doc');
         $key = "uploads/{$doc['idname']}/{$doc['id']}/{$doc['title']}";
 
-        $now = strtotime(date("Y-m-d\TG:i:s")); 
-        $expire = date('Y-m-d\TG:i:s\Z', strtotime('+ 10 minutes', $now)); // credentials valid 10 minutes from now 
+        $now = strtotime(date("Y-m-d\TG:i:s"));
+        $expire = date('Y-m-d\TG:i:s\Z', strtotime('+ 10 minutes', $now)); // credentials valid 10 minutes from now
 
         $aws_access_key_id = $this->container->getParameter('s3_access_key');
         $aws_secret_key    = $this->container->getParameter('s3_secret_key');
         $bucket            = $this->container->getParameter('s3_bucket');
-        $acl = 'private';  
-        $url = 'http://'.$bucket.'.s3.amazonaws.com'; 
+        $acl = 'private';
+        $url = 'http://'.$bucket.'.s3.amazonaws.com';
 
         $policy_document='
         {"expiration": "'.$expire.'",
@@ -349,7 +350,7 @@ class AttachmentController extends Controller
           ]
         }';
         // create policy
-        $policy = base64_encode($policy_document); 
+        $policy = base64_encode($policy_document);
 
         // create signature
         // hex2b64 and hmacsha1 are functions that we will create
@@ -363,14 +364,15 @@ class AttachmentController extends Controller
         );
 
         $return = array(
-            'policy'    => $policy, 
-            'signature' => $signature, 
-            'key'       => $key, 
+            'policy'    => $policy,
+            'signature' => $signature,
+            'key'       => $key,
             );
 
         $response = new Response(json_encode($return));
         $response->headers->set('Content-Type', 'application/json');
+
         return $response;
-    } 
-    
+    }
+
 }
